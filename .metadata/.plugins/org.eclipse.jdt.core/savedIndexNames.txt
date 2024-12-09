@@ -1,0 +1,5 @@
+INDEX VERSION 1.134+C:\Users\Lucas\OneDrive\Área de Trabalho\Projectum_LUX\.metadata\.plugins\org.eclipse.jdt.core
+1865797976.index
+2707155964.index
+940454924.index
+770168862.index
