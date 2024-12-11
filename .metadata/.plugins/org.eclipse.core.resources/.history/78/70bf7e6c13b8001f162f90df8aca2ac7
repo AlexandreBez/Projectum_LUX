@@ -1,0 +1,47 @@
+package raspberry_central_data.panels;
+
+import javax.swing.*;
+
+import java.awt.BorderLayout;
+import java.io.File;
+
+public class SaveDialogPanel extends JDialog {
+
+    public SaveDialogPanel(JFrame parent) {
+        super(parent, "Salvar Gravação", true);
+        setSize(400, 200);
+        setLayout(new BorderLayout());
+
+        JLabel message = new JLabel("Deseja salvar a gravação?", SwingConstants.CENTER);
+        add(message, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel();
+        JButton saveButton = new JButton("Salvar");
+        JButton dontSaveButton = new JButton("Não Salvar");
+
+        saveButton.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Salvar Gravação");
+            int userSelection = fileChooser.showSaveDialog(this);
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                File fileToSave = fileChooser.getSelectedFile();
+                JOptionPane.showMessageDialog(this, "Gravação salva em: " + fileToSave.getAbsolutePath());
+                // Adicione o código para salvar o arquivo aqui
+            }
+            dispose();
+        });
+
+        dontSaveButton.addActionListener(e -> {
+            JOptionPane.showMessageDialog(this, "Gravação não será salva.");
+            dispose();
+        });
+
+        buttonPanel.add(saveButton);
+        buttonPanel.add(dontSaveButton);
+        add(buttonPanel, BorderLayout.SOUTH);
+
+        setLocationRelativeTo(parent);
+        setVisible(true);
+    }
+}
+

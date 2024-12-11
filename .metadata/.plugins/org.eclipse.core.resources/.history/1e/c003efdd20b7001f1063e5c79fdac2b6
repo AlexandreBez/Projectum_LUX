@@ -1,0 +1,151 @@
+package raspberry_central_data.panels;
+
+import com.pi4j.context.Context;
+import com.pi4j.io.gpio.analog.AnalogOutput;
+import com.pi4j.io.i2c.I2C;
+import com.pi4j.io.pwm.Pwm;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.Timer;
+import java.util.TimerTask;
+
+public class ThermalCameraPanel extends JPanel {
+
+    private static final int I2C_BUS = 1;
+    private static final int AMG8833_ADDRESS = 0x69;
+    private final I2C i2c;
+    private final Pwm piezoPwm;
+    private final double[][] temperatures;
+    private final Timer updateTimer;
+    private boolean cameraActive = true;
+
+    public ThermalCameraPanel(Context pi4j) {
+
+        this.i2c = pi4j.i2c().create(I2C.newConfigBuilder(pi4j)
+                .id("amg8833")
+                .bus(I2C_BUS)
+                .device(AMG8833_ADDRESS)
+                .build());
+
+        this.piezoPwm = pi4j.pwm().create(Pwm.newConfigBuilder(pi4j)
+                .id("piezo-pwm")
+                .name("Piezo Buzzer")
+                .address(25)
+                .frequency(800)
+                .build());
+
+        this.temperatures = new double[8][8];
+        this.updateTimer = new Timer();
+
+        setBackground(Color.BLACK);
+        setPreferredSize(new Dimension(900, 700));
+
+        
+        updateTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (cameraActive) {
+                    updateTemperatures();
+                    checkPiezoAlarm();
+                    SwingUtilities.invokeLater(() -> repaint());
+                }
+            }
+        }, 0, 1000);
+    }
+
+
+    private void updateTemperatures() {
+        try {
+            byte[] buffer = new byte[64 * 2];
+            i2c.readRegister(0x80, buffer, 0, buffer.length);
+
+            for (int i = 0; i < 64; i++) {
+                int tempRaw = ((buffer[i * 2 + 1] & 0xFF) << 8) | (buffer[i * 2] & 0xFF);
+                temperatures[i / 8][i % 8] = tempRaw * 0.25; // Conversão para Celsius
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Controla o alarme do piezo e interrompe a câmera se necessário.
+     */
+    private void checkPiezoAlarm() {
+        boolean alarmTriggered = false;
+
+        for (double[] row : temperatures) {
+            for (double temp : row) {
+                if (temp >= 80) {
+                    shutdownCamera(); // Interrompe a câmera
+                    return;
+                } else if (temp >= 75) {
+                    alarmTriggered = true; // Ativa o alarme moderado
+                }
+            }
+        }
+
+        if (alarmTriggered) {
+            activatePiezoSoftAlarm();
+        } else {
+            deactivatePiezo();
+        }
+    }
+
+    /**
+     * Ativa o piezo com um som suave e pausado.
+     */
+    private void activatePiezoSoftAlarm() {
+        new Timer().schedule(new TimerTask() {
+            boolean state = false;
+
+            @Override
+            public void run() {
+                if (!cameraActive) {
+                    this.cancel();
+                }
+                state = !state; // Alterna entre ligar/desligar
+                piezoPwm.dutyCycle(state ? 50 : 0); // Define 50% de PWM para som suave
+            }
+        }, 0, 500); // Intervalo de 500ms
+    }
+
+    /**
+     * Desativa o piezo completamente.
+     */
+    private void deactivatePiezo() {
+        piezoPwm.dutyCycle(0); // Desliga o PWM
+    }
+
+    /**
+     * Interrompe a câmera térmica e exibe um alerta.
+     */
+    private void shutdownCamera() {
+        cameraActive = false;
+        updateTimer.cancel(); // Para o Timer de atualizações
+        deactivatePiezo(); // Desativa o piezo
+        JOptionPane.showMessageDialog(this,
+                "Câmera desativada! Temperatura excedeu 80°C.",
+                "Alerta Crítico",
+                JOptionPane.ERROR_MESSAGE);
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        // Renderiza o mapa de calor
+        int cellWidth = getWidth() / 8;
+        int cellHeight = getHeight() / 8;
+
+        for (int row = 0; row < temperatures.length; row++) {
+            for (int col = 0; col < temperatures[row].length; col++) {
+                double temp = temperatures[row][col];
+                int colorValue = Math.min(255, (int) (temp * 2));
+                g.setColor(new Color(colorValue, 0, 255 - colorValue));
+                g.fillRect(col * cellWidth, row * cellHeight, cellWidth, cellHeight);
+            }
+        }
+    }
+}

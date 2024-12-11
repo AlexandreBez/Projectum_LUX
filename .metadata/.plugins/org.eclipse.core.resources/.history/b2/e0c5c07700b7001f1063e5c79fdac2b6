@@ -1,0 +1,38 @@
+package raspberry_central_data.panels;
+
+import javax.swing.*;
+import java.awt.*;
+
+public class MotorControlPanel extends JPanel {
+
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private JTextField motorSpeedInput;
+	private int rpm = 0;
+
+    public MotorControlPanel() {
+    	
+    	
+        setLayout(new FlowLayout());
+        JLabel motorSpeedLabel = new JLabel("Definir RPM: ");
+        motorSpeedInput = new JTextField(10);
+        JButton setMotorSpeedButton = new JButton("Atualizar");
+        JTextField rpmValue = new JTextField(); 
+        rpmValue.setText("RPM atual: " + rpm);
+
+        // Define a ação para o botão
+        setMotorSpeedButton.addActionListener(e -> {
+            try {
+                rpm = Integer.parseInt(motorSpeedInput.getText());
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Por favor, insira um número válido.", "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        add(motorSpeedLabel);
+        add(motorSpeedInput);
+        add(setMotorSpeedButton);
+    }
+}

@@ -1,0 +1,54 @@
+package raspberry_central_data;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import javax.swing.*;
+
+import raspberry_central_data.panels.MotorControlPanel;
+import raspberry_central_data.panels.RecordingControlPanel;
+import raspberry_central_data.panels.ThermalCameraPanel;
+
+public class MainApp {
+
+    public static void main(String[] args) {
+        // Configuração do JFrame principal
+        JFrame mainFrame = new JFrame("Projeto LUX - Controle e Análise de Dados");
+        mainFrame.setSize(900, 700);
+        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        mainFrame.setLayout(new BorderLayout());
+        mainFrame.setResizable(true);
+
+        // Adiciona um JPanel na parte superior
+        JPanel topPanel = createTopPanel();
+        mainFrame.add(topPanel, BorderLayout.NORTH);
+
+        // Adiciona o painel da câmera no centro
+        mainFrame.add(new ThermalCameraPanel(8, 8), BorderLayout.CENTER);
+
+        // Adiciona os controles na parte inferior
+        JPanel controlPanel = new JPanel(new GridLayout(1, 2));
+        controlPanel.add(new RecordingControlPanel(mainFrame));
+        controlPanel.add(new MotorControlPanel());
+        mainFrame.add(controlPanel, BorderLayout.SOUTH);
+
+        // Torna o JFrame visível
+        mainFrame.setVisible(true);
+    }
+
+    /**
+     * Cria o painel simples na parte superior.
+     */
+    private static JPanel createTopPanel() {
+        // Criação do JPanel
+        JPanel topPanel = new JPanel();
+        topPanel.setBackground(Color.LIGHT_GRAY);
+        topPanel.setPreferredSize(new Dimension(900, 50)); // Largura fixa e altura de 50px
+
+        // Adiciona conteúdo ao JPanel (exemplo: rótulos ou botões)
+        JLabel titleLabel = new JLabel("Painel Superior - Informações Gerais");
+        topPanel.add(titleLabel);
+
+        return topPanel;
+    }
+}

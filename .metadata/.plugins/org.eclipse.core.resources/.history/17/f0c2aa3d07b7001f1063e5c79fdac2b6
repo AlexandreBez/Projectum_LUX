@@ -1,0 +1,82 @@
+package raspberry_central_data.panels;
+
+import java.awt.FlowLayout;
+
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.Timer;
+
+public class StopwatchPanel extends JPanel {
+
+    private static final long serialVersionUID = 1L;
+
+    private JButton resetButton;
+    private JLabel timerLabel;
+    private Timer timer;
+    private long startTime;
+    private boolean isRunning;
+
+    public StopwatchPanel() {
+        setLayout(new FlowLayout());
+
+        // Inicializa componentes
+        timerLabel = new JLabel("Tempo decorrido: 00:00:00");
+        resetButton = new JButton("Resetar");
+
+        // Inicializa o Timer
+        timer = new Timer(1000, e -> updateTimerLabel());
+        isRunning = false;
+        
+        if (!isRunning) {
+        	// Ação para resetar o cronômetro
+        	resetButton.addActionListener(e -> reset());			
+        	add(resetButton);
+		}
+
+
+        // Adiciona componentes ao painel
+        add(timerLabel);
+    }
+
+    /**
+     * Inicia o cronômetro.
+     */
+    public void start() {
+        if (!isRunning) {
+            startTime = System.currentTimeMillis();
+            timer.start();
+            isRunning = true;
+        }
+    }
+
+    /**
+     * Para o cronômetro.
+     */
+    public void stop() {
+        if (isRunning) {
+            timer.stop();
+            isRunning = false;
+        }
+    }
+
+    /**
+     * Atualiza o rótulo com o tempo decorrido.
+     */
+    private void updateTimerLabel() {
+        long elapsedMillis = System.currentTimeMillis() - startTime;
+        long hours = elapsedMillis / (1000 * 60 * 60);
+        long minutes = (elapsedMillis / (1000 * 60)) % 60;
+        long seconds = (elapsedMillis / 1000) % 60;
+        timerLabel.setText(String.format("Tempo decorrido: %02d:%02d:%02d", hours, minutes, seconds));
+    }
+
+    /**
+     * Reseta o cronômetro.
+     */
+    public void reset() {
+        timer.stop();
+        timerLabel.setText("Tempo decorrido: 00:00:00");
+        isRunning = false;
+    }
+}

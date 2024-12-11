@@ -1,0 +1,7 @@
+package raspberry_central_data.panels;
+
+import javax.swing.JPanel;
+
+public class StopwatchPanel extends JPanel{
+
+}

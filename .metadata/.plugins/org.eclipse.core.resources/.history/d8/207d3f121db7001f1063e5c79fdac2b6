@@ -1,0 +1,68 @@
+package raspberry_central_data.panels;
+
+import javax.swing.*;
+
+import com.pi4j.context.Context;
+import com.pi4j.io.i2c.I2C;
+import com.pi4j.io.i2c.I2CConfig;
+import com.pi4j.io.i2c.I2CProvider;
+
+import java.awt.*;
+
+public class ThermalCameraPanel extends JPanel {
+
+    private static final int I2C_BUS = 1;
+    private static final int AMG8833_ADDRESS = 0x69;  
+    
+    private final int cameraRows;
+    private final int cameraCols;
+    
+    private I2CConfig cameraConfig(Context pi4j) {       	
+    	return I2C.newConfigBuilder(pi4j)
+    			.id("amg8833")
+    			.bus(I2C_BUS)
+    			.device(AMG8833_ADDRESS)
+    			.build();
+    }
+
+    public ThermalCameraPanel(int rows, int cols, Context pi4j) {
+    	
+    	I2CProvider i2cProvider = pi4j.provider("linuxfs-i2c");
+    	I2C i2c = i2cProvider.create(cameraConfig(pi4j));
+    	
+        this.cameraRows = rows;
+        this.cameraCols = cols;
+        setBackground(Color.BLACK);
+        setPreferredSize(new Dimension(900, 700));
+        setAlignmentX(CENTER_ALIGNMENT);
+        setAlignmentY(CENTER_ALIGNMENT);
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        // Tamanho do painel
+        int panelWidth = getWidth();
+        int panelHeight = getHeight();
+
+        // Tamanho do quadrado baseado no menor lado disponível
+        int cellSize = Math.min(panelWidth / cameraCols, panelHeight / cameraRows);
+
+        // Calcula as margens para centralizar
+        int totalGridWidth = cellSize * cameraCols;
+        int totalGridHeight = cellSize * cameraRows;
+        int startX = (panelWidth - totalGridWidth) / 2;
+        int startY = (panelHeight - totalGridHeight) / 2;
+
+        // Simulação de dados térmicos - substitua pelos dados reais
+        for (int row = 0; row < cameraRows; row++) {
+            for (int col = 0; col < cameraCols; col++) {
+                int temp = (int) (Math.random() * 255); // Simula a leitura de temperatura
+                int color = Math.min(255, temp); // Escala simples
+                g.setColor(new Color(color, 0, 255 - color));
+                g.fillRect(startX + col * cellSize, startY + row * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+}

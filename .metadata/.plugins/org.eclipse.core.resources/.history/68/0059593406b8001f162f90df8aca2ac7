@@ -1,0 +1,84 @@
+package raspberry_central_data.panels;
+
+import com.pi4j.context.Context;
+import com.pi4j.io.gpio.analog.AnalogOutput;
+import com.pi4j.io.i2c.I2C;
+import com.pi4j.io.pwm.Pwm;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.Timer;
+import java.util.TimerTask;
+
+public class ThermalCameraPanel extends JPanel {
+
+    private static final int I2C_BUS = 1;
+    private static final int AMG8833_ADDRESS = 0x69;
+    private final I2C i2c;
+    private final double[][] temperatures;
+    private final Timer updateTimer;
+    public boolean cameraActive = true;
+
+    // Configuração do painel e camera
+    public ThermalCameraPanel(Context pi4j) {
+
+        this.i2c = pi4j.i2c().create(I2C.newConfigBuilder(pi4j)
+                .id("amg8833")
+                .bus(I2C_BUS)
+                .device(AMG8833_ADDRESS)
+                .build());
+
+        this.temperatures = new double[8][8];
+        this.updateTimer = new Timer();
+
+        setBackground(Color.BLACK);
+        setPreferredSize(new Dimension(900, 700));
+
+        
+        updateTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (cameraActive) {
+                    updateTemperatures();
+                    SwingUtilities.invokeLater(() -> repaint());
+                }
+            }
+        }, 0, 1000);
+    }
+    
+    // atualiza quadro de temperatura
+    private void updateTemperatures() {
+        try {
+            byte[] buffer = new byte[64 * 2];
+            i2c.readRegister(0x80, buffer, 0, buffer.length);
+
+            for (int i = 0; i < 64; i++) {
+                int tempRaw = ((buffer[i * 2 + 1] & 0xFF) << 8) | (buffer[i * 2] & 0xFF);
+                temperatures[i / 8][i % 8] = tempRaw * 0.25; // Conversão para Celsius
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // exibe na tela os quadros de temperatura
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        // Renderiza o mapa de calor
+        int cellWidth = getWidth() / 8;
+        int cellHeight = getHeight() / 8;
+
+        for (int row = 0; row < temperatures.length; row++) {
+            for (int col = 0; col < temperatures[row].length; col++) {
+                double temp = temperatures[row][col];
+                int colorValue = Math.min(255, (int) (temp * 2));
+                g.setColor(new Color(colorValue, 0, 255 - colorValue));
+                g.fillRect(col * cellWidth, row * cellHeight, cellWidth, cellHeight);
+            }
+        }
+    }
+
+    
+}

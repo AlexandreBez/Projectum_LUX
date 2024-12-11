@@ -1,0 +1,40 @@
+package raspberry_central_data;
+
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+
+import raspberry_central_data.panels.MotorControlPanel;
+import raspberry_central_data.panels.RecordingControlPanel;
+import raspberry_central_data.panels.ThermalCameraPanel;
+
+public class MainApp {
+
+	public static void main(String[] args) throws Exception{
+		// Configure default logging level, accept a log level as the first program argument
+		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "INFO");
+		
+		JFrame main_frame = new JFrame();
+		
+        // Configurações principais
+		main_frame.setTitle("Projeto LUX - Controle e analise de dados");
+		main_frame.setSize(900, 700);
+		main_frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		main_frame.setLayout(new BorderLayout());
+		main_frame.setResizable(true);
+
+        // Adiciona o painel da câmera
+		main_frame.add(new ThermalCameraPanel(), BorderLayout.NORTH);
+
+        // Adiciona os controles na parte inferior
+        JPanel controlPanel = new JPanel(new GridLayout(1, 2));
+        controlPanel.add(new RecordingControlPanel(main_frame));
+        controlPanel.add(new MotorControlPanel());
+        main_frame.add(controlPanel, BorderLayout.SOUTH);
+
+        main_frame.setVisible(true);
+	}
+
+}

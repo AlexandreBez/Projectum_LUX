@@ -1,0 +1,39 @@
+package raspberry_central_data.panels;
+
+import java.awt.FlowLayout;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+
+public class RecordingControlPanel extends JPanel {
+
+    private static final long serialVersionUID = 1L;
+
+    public RecordingControlPanel(JFrame parentFrame) {
+        setLayout(new FlowLayout());
+
+        // Obtenha o StopwatchPanel do parentFrame, se possível
+        StopwatchPanel stopwatchPanel = null;
+        if (parentFrame instanceof MainFrame) {
+            stopwatchPanel = ((MainFrame) parentFrame).getStopwatchPanel();
+        }
+
+        JButton startButton = new JButton("Iniciar Gravação");
+        JButton stopButton = new JButton("Parar Gravação");
+
+        startButton.addActionListener(e -> {
+            if (stopwatchPanel != null) {
+                stopwatchPanel.start();
+            }
+        });
+
+        stopButton.addActionListener(e -> {
+            if (stopwatchPanel != null) {
+                stopwatchPanel.stop();
+            }
+        });
+
+        add(startButton);
+        add(stopButton);
+    }
+}

@@ -1,0 +1,54 @@
+package raspberry_central_data.core;
+
+import com.pi4j.Pi4J;
+import com.pi4j.context.Context;
+import com.pi4j.io.i2c.I2C;
+import com.pi4j.io.i2c.I2CConfig;
+import com.pi4j.io.i2c.I2CProvider;
+
+public class ThermalCameraAMG8833 {
+
+    private static final int I2C_BUS = 1;          // Barramento I2C padrão no Raspberry Pi
+    private static final int AMG8833_ADDRESS = 0x69; // Endereço I2C padrão da câmera AMG8833
+
+    public static void main(String[] args) throws Exception {
+        // Inicializa o contexto do Pi4J
+        Context pi4j = Pi4J.newAutoContext();
+
+        // Configura o I2C
+        I2CProvider i2cProvider = pi4j.provider("linuxfs-i2c");
+        I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j)
+                .id("amg8833")
+                .bus(I2C_BUS)
+                .device(AMG8833_ADDRESS)
+                .build();
+
+        I2C i2c = i2cProvider.create(i2cConfig);
+
+        // Inicializa a câmera (escrevendo no registrador de inicialização, se necessário)
+        i2c.writeRegister(0x00, (byte) 0x00); // Ativa a câmera
+
+        // Lê dados térmicos da câmera
+        byte[] buffer = new byte[64 * 2]; // Cada temperatura ocupa 2 bytes
+        i2c.readRegister(0x80, buffer, 0, buffer.length);
+
+        // Processa os dados para converter em temperaturas
+        double[][] temperatures = new double[8][8];
+        for (int i = 0; i < 64; i++) {
+            int tempRaw = ((buffer[i * 2 + 1] & 0xFF) << 8) | (buffer[i * 2] & 0xFF);
+            temperatures[i / 8][i % 8] = tempRaw * 0.25; // Conversão padrão para Celsius
+        }
+
+        // Exibe as temperaturas
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                System.out.printf("%.2f ", temperatures[row][col]);
+            }
+            System.out.println();
+        }
+
+        // Finaliza o Pi4J
+        pi4j.shutdown();
+    }
+}
+

@@ -1,0 +1,18 @@
+package raspberry_central_data.panels;
+
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+public class StopwatchPanel extends JPanel{
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	public StopwatchPanel() {
+		JLabel motorSpeedLabel = new JLabel("RPM atual (max 15): RPM ");
+		
+		add(motorSpeedLabel);
+	}
+}

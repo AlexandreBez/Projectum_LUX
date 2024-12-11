@@ -1,0 +1,80 @@
+package raspberry_central_data;
+
+import java.awt.BorderLayout;
+import javax.swing.*;
+
+import raspberry_central_data.panels.MotorControlPanel;
+import raspberry_central_data.panels.RecordingControlPanel;
+import raspberry_central_data.panels.ThermalCameraPanel;
+
+public class MainApp {
+
+    public static void main(String[] args) {
+        // Configuração do JFrame principal
+        JFrame mainFrame = new JFrame("Projeto LUX - Controle e Análise de Dados");
+        mainFrame.setSize(900, 700);
+        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        mainFrame.setLayout(new BorderLayout());
+        mainFrame.setResizable(true);
+
+        // Adiciona o painel da câmera
+        mainFrame.add(new ThermalCameraPanel(8, 8), BorderLayout.CENTER);
+
+        // Adiciona o menu na parte superior
+        mainFrame.setJMenuBar(createMenuBar(mainFrame));
+
+        // Adiciona o painel de controle na parte inferior
+        JPanel controlPanel = new JPanel(new GridLayout(1, 2));
+        controlPanel.add(new RecordingControlPanel(mainFrame));
+        controlPanel.add(new MotorControlPanel());
+        mainFrame.add(controlPanel, BorderLayout.SOUTH);
+
+        // Torna o JFrame visível
+        mainFrame.setVisible(true);
+    }
+
+    /**
+     * Cria um menu na parte superior.
+     */
+    private static JMenuBar createMenuBar(JFrame parent) {
+        // Barra de menu
+        JMenuBar menuBar = new JMenuBar();
+
+        // Menu "Arquivo"
+        JMenu fileMenu = new JMenu("Arquivo");
+        JMenuItem saveItem = new JMenuItem("Salvar");
+        JMenuItem exitItem = new JMenuItem("Sair");
+
+        saveItem.addActionListener(e -> JOptionPane.showMessageDialog(parent, "Salvar selecionado!"));
+        exitItem.addActionListener(e -> System.exit(0));
+
+        fileMenu.add(saveItem);
+        fileMenu.add(exitItem);
+
+        // Menu "Controle"
+        JMenu controlMenu = new JMenu("Controle");
+        JMenuItem startRecordingItem = new JMenuItem("Iniciar Gravação");
+        JMenuItem stopRecordingItem = new JMenuItem("Parar Gravação");
+
+        startRecordingItem.addActionListener(e -> JOptionPane.showMessageDialog(parent, "Gravação iniciada!"));
+        stopRecordingItem.addActionListener(e -> JOptionPane.showMessageDialog(parent, "Gravação parada!"));
+
+        controlMenu.add(startRecordingItem);
+        controlMenu.add(stopRecordingItem);
+
+        // Menu "Ajuda"
+        JMenu helpMenu = new JMenu("Ajuda");
+        JMenuItem aboutItem = new JMenuItem("Sobre");
+
+        aboutItem.addActionListener(e -> JOptionPane.showMessageDialog(parent, "Projeto LUX v1.0"));
+
+        helpMenu.add(aboutItem);
+
+        // Adiciona menus à barra de menu
+        menuBar.add(fileMenu);
+        menuBar.add(controlMenu);
+        menuBar.add(helpMenu);
+
+        return menuBar;
+    }
+}

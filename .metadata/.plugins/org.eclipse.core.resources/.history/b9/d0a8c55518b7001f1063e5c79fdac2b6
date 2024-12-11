@@ -1,0 +1,62 @@
+package raspberry_central_data.panels;
+
+import javax.swing.*;
+
+import com.pi4j.context.Context;
+import com.pi4j.io.i2c.I2C;
+
+import java.awt.*;
+
+public class ThermalCameraPanel extends JPanel {
+
+    private static final long serialVersionUID = 1L;
+    
+    private I2C cameraI2C;
+    
+    public ThermalCameraPanel(Context pi4j) {
+        this.cameraRows = 0;
+		// Configura o I2C para a câmera térmica
+        cameraI2C = pi4j.i2c().create(1, 0x69); // I2C Bus 1, endereço da câmera
+    }
+
+    // Dimensões da câmera térmica
+    private final int cameraRows;
+    private final int cameraCols;
+
+    public ThermalCameraPanel(int rows, int cols) {
+        this.cameraRows = rows; // Número de linhas
+        this.cameraCols = cols; // Número de colunas
+        setBackground(Color.BLACK);
+        setPreferredSize(new Dimension(900, 700));
+        setAlignmentX(CENTER_ALIGNMENT);
+        setAlignmentY(CENTER_ALIGNMENT);
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        // Tamanho do painel
+        int panelWidth = getWidth();
+        int panelHeight = getHeight();
+
+        // Tamanho do quadrado baseado no menor lado disponível
+        int cellSize = Math.min(panelWidth / cameraCols, panelHeight / cameraRows);
+
+        // Calcula as margens para centralizar
+        int totalGridWidth = cellSize * cameraCols;
+        int totalGridHeight = cellSize * cameraRows;
+        int startX = (panelWidth - totalGridWidth) / 2;
+        int startY = (panelHeight - totalGridHeight) / 2;
+
+        // Simulação de dados térmicos - substitua pelos dados reais
+        for (int row = 0; row < cameraRows; row++) {
+            for (int col = 0; col < cameraCols; col++) {
+                int temp = (int) (Math.random() * 255); // Simula a leitura de temperatura
+                int color = Math.min(255, temp); // Escala simples
+                g.setColor(new Color(color, 0, 255 - color));
+                g.fillRect(startX + col * cellSize, startY + row * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+}

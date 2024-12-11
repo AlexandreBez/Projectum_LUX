@@ -1,0 +1,25 @@
+package raspberry_central_data.panels;
+
+import java.awt.FlowLayout;
+import java.util.Date;
+
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+public class StopwatchPanel extends JPanel{
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	public StopwatchPanel() {
+		
+        setLayout(new FlowLayout());
+        JLabel Start = new JLabel("Start: " + new Date().toString()); 
+        JLabel end = new JLabel("End: " + new Date().toString()); 
+        
+		add(Start);
+		add(end);
+	}
+}

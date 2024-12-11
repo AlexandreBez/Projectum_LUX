@@ -1,0 +1,34 @@
+package raspberry_central_data.panels;
+
+import javax.swing.*;
+import java.awt.*;
+
+public class RecordingControlPanel extends JPanel {
+
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private JFrame parent;
+
+    public RecordingControlPanel(JFrame parent) {
+        this.parent = parent;
+        setLayout(new FlowLayout());
+
+        JButton startRecordingButton = new JButton("Iniciar Gravação");
+        JButton stopRecordingButton = new JButton("Parar Gravação");
+
+        // Ação para iniciar a gravação
+        startRecordingButton.addActionListener(e -> {
+            JOptionPane.showMessageDialog(this, "Gravação iniciada.");
+            // Adicione o código para iniciar a gravação aqui
+        });
+
+        // Ação para parar a gravação
+        stopRecordingButton.addActionListener(e -> new SaveDialog(parent));
+
+        add(startRecordingButton);
+        add(stopRecordingButton);
+    }
+}
+

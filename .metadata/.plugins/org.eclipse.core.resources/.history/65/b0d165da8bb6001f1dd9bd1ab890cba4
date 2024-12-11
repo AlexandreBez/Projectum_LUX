@@ -1,0 +1,32 @@
+package raspberry_central_data.panels;
+
+import javax.swing.*;
+import java.awt.*;
+
+public class ThermalCameraPanel extends JPanel {
+
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	@Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        // Simulação de dados térmicos - substitua pelos dados reais
+        int cellSize = 50;
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                int temp = (int) (Math.random() * 255); // Simula a leitura de temperatura
+                int color = Math.min(255, temp); // Escala simples
+                g.setColor(new Color(color, 0, 255 - color));
+                g.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+
+    public ThermalCameraPanel() {
+        setPreferredSize(new Dimension(800, 400));
+    }
+}
+

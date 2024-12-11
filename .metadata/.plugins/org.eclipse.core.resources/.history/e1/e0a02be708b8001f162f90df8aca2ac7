@@ -1,0 +1,98 @@
+package raspberry_central_data.panels;
+
+import com.pi4j.context.Context;
+import com.pi4j.io.gpio.digital.DigitalOutput;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+public class MotorControlPanel extends JPanel {
+
+    private static final long serialVersionUID = 1L;
+
+    private JTextField motorSpeedInput;
+    private int rpm = 0;
+
+    // Sequência de ativação para o motor
+    private static final int[][] STEP_SEQUENCE = {
+        {1, 0, 0, 0},
+        {1, 1, 0, 0},
+        {0, 1, 0, 0},
+        {0, 1, 1, 0},
+        {0, 0, 1, 0},
+        {0, 0, 1, 1},
+        {0, 0, 0, 1},
+        {1, 0, 0, 1}
+    };
+
+    private final DigitalOutput[] motorPins;
+    private ScheduledExecutorService executorService;
+
+    public MotorControlPanel(Context pi4j) {
+        setLayout(new FlowLayout());
+        JLabel motorSpeedLabel = new JLabel("RPM atual (max 15): " + rpm + " RPM ");
+        motorSpeedInput = new JTextField(10);
+        JButton setMotorSpeedButton = new JButton("Atualizar");
+
+        // Configuração dos pinos usando Pigpio
+        motorPins = new DigitalOutput[4];
+        motorPins[0] = pi4j.dout().create(17); // IN1
+        motorPins[1] = pi4j.dout().create(27); // IN2
+        motorPins[2] = pi4j.dout().create(22); // IN3
+        motorPins[3] = pi4j.dout().create(23); // IN4
+
+        // Define a ação para o botão
+        setMotorSpeedButton.addActionListener(e -> {
+            try {
+                int newRpm = Integer.parseInt(motorSpeedInput.getText());
+                if (newRpm > 15) {
+                    JOptionPane.showMessageDialog(this, "Por favor, insira um número de 0 até 15.", "Erro", JOptionPane.ERROR_MESSAGE);
+                } else {
+                    rpm = newRpm;
+                    motorSpeedLabel.setText("RPM atual (max 15): " + rpm + " RPM ");
+                    updateMotorSpeed();
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Por favor, insira um número válido.", "Erro", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        add(motorSpeedLabel);
+        add(motorSpeedInput);
+        add(setMotorSpeedButton);
+
+        // Executor para controle do motor
+        executorService = Executors.newSingleThreadScheduledExecutor();
+    }
+
+    /**
+     * Atualiza a velocidade do motor com base no RPM fornecido.
+     */
+    private void updateMotorSpeed() {
+        executorService.shutdownNow();
+        if (rpm > 0) {
+            int stepDelay = (int) (60_000 / (rpm * 2048)); // Tempo entre passos em ms
+            executorService = Executors.newSingleThreadScheduledExecutor();
+            executorService.scheduleAtFixedRate(this::rotateMotor, 0, stepDelay, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    /**
+     * Gira o motor de passo usando a sequência definida.
+     */
+    private void rotateMotor() {
+        try {
+            for (int[] step : STEP_SEQUENCE) {
+                for (int i = 0; i < motorPins.length; i++) {
+                    motorPins[i].state(step[i] == 1);
+                }
+                Thread.sleep(2); // Pequeno atraso entre os passos
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
