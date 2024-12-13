@@ -28,14 +28,14 @@ public class MainApp {
     	ThermalCameraPanel cameraPanel = new ThermalCameraPanel(context);
         JFrame mainFrame = new JFrame();
 
-        // ConfiguraÃ§Ãµes principais
-        mainFrame.setTitle("Projeto LUX - Controle e AnÃ¡lise de Dados");
+        // Configurações principais
+        mainFrame.setTitle("Projeto LUX - Controle e Análise de Dados");
         mainFrame.setSize(900, 700);
         mainFrame.setLayout(new BorderLayout());
         mainFrame.setResizable(true);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
-        // Cria a instÃ¢ncia Ãºnica do StopwatchPanel
+        // Cria a instância única do StopwatchPanel
         StopwatchPanel stopwatchPanel = new StopwatchPanel();
 
         // Adiciona os controles
@@ -44,10 +44,10 @@ public class MainApp {
         controlPanel.add(stopwatchPanel);
         mainFrame.add(controlPanel, BorderLayout.NORTH);
 
-        // Adiciona o painel da cÃ¢mera
+        // Adiciona o painel da câmera
         mainFrame.add(cameraPanel, BorderLayout.CENTER);
 
-        // Torna a janela visÃ­vel
+        // Torna a janela visível
         mainFrame.setVisible(true);
         
         // Finaliza o Context quando o programa for fechado

@@ -1,9 +1,8 @@
 package raspberry_central_data.panels;
 
-import com.pi4j.io.gpio.digital.DigitalInput;
-import com.pi4j.io.gpio.digital.PullResistance;
-import com.pi4j.io.i2c.I2C;
+import com.pi4j.context.Context;
 
+import raspberry_central_data.configs.AMG8833Config;
 import raspberry_central_data.core.ThermalData;
 
 import javax.swing.*;
@@ -15,37 +14,16 @@ import java.util.TimerTask;
 @SuppressWarnings("serial")
 public class ThermalCameraPanel extends JPanel {
 
-	private static final int I2C_BUS = 1;
-	private static final int AMG8833_ADDRESS = 0x68;
-	private static final int INTERRUPT_PIN = 24;
-	public double[][] FRAME = new double[8][8];
-
-    private ThermalData thermalData;
-    private I2C i2c;
-    private DigitalInput interrupt;
+    private AMG8833Config amg8833Config = new AMG8833Config();
+    private ThermalData thermalData = new ThermalData();
     private boolean cameraActive = true;
     private final Timer updateTimer;
-    
 
-    public ThermalCameraPanel(com.pi4j.context.Context context) {
-    	
-    	i2c = context.i2c().create(I2C.newConfigBuilder(context)
-				.id("amg8833")
-				.bus(I2C_BUS)
-				.device(AMG8833_ADDRESS)
-				.build());
-    	
-    	interrupt = context.din().create(DigitalInput.newConfigBuilder(context)
-				.id("amg8833-int")
-				.address(INTERRUPT_PIN)
-				.pull(PullResistance.PULL_DOWN) 
-				.provider("gpiod-digital-input")
-				.build());
+    public ThermalCameraPanel(Context pi4j) {
 
-        this.thermalData = new ThermalData();
     	this.updateTimer = new Timer();
     	
-    	interrupt.addListener(event -> {
+    	amg8833Config.AMG8833InterruptConfig(pi4j).addListener(event -> {
     		
             if (event.state().isHigh() && cameraActive) {
                 double maxTemperature = thermalData.getMaxTemperature();
@@ -54,7 +32,7 @@ public class ThermalCameraPanel extends JPanel {
                     SwingUtilities.invokeLater(() -> {
                         JOptionPane.showMessageDialog(
                                 this,
-                                "AtenÃ§Ã£o! A temperatura atingiu " + maxTemperature + "Â°C.\nPor favor, monitore o sistema.",
+                                "Atenção! A temperatura atingiu " + maxTemperature + "°C.\nPor favor, monitore o sistema.",
                                 "Aviso de Temperatura",
                                 JOptionPane.WARNING_MESSAGE
                         );
@@ -77,23 +55,23 @@ public class ThermalCameraPanel extends JPanel {
             @Override
             public void run() {
                 if (cameraActive) {
-                	thermalData.updateTemperatures(i2c, FRAME);
+                	thermalData.updateTemperatures(amg8833Config, pi4j);
                     SwingUtilities.invokeLater(() -> repaint());
                 }
             }
-        }, 0, 1000);
+        }, 0, 500);
         
     }
     
     private void showCriticalTemperatureDialog() {
     	
-        JFrame criticalFrame = new JFrame("Alerta CrÃ­tico - Alta Temperatura");
+        JFrame criticalFrame = new JFrame("Alerta Crítico - Alta Temperatura");
         criticalFrame.setSize(400, 300);
         criticalFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         criticalFrame.setLayout(new GridLayout(3, 1));
 
         JLabel messageLabel = new JLabel(
-                "<html><center>Temperatura CrÃ­tica!<br>A temperatura ultrapassou 80Â°C.</center></html>",
+                "<html><center>Temperatura Crítica!<br>A temperatura ultrapassou 80°C.</center></html>",
                 JLabel.CENTER
         );
 
@@ -107,7 +85,7 @@ public class ThermalCameraPanel extends JPanel {
             	
                 JOptionPane.showMessageDialog(
                         criticalFrame,
-                        "Temperatura estabilizada em " + currentTemperature + "Â°C. Sistema pode continuar.",
+                        "Temperatura estabilizada em " + currentTemperature + "°C. Sistema pode continuar.",
                         "Temperatura Estabilizada",
                         JOptionPane.INFORMATION_MESSAGE
                 );
@@ -117,8 +95,8 @@ public class ThermalCameraPanel extends JPanel {
             	
                 JOptionPane.showMessageDialog(
                         criticalFrame,
-                        "Temperatura ainda crÃ­tica: " + currentTemperature + "Â°C. Aguarde mais tempo.",
-                        "AtenÃ§Ã£o",
+                        "Temperatura ainda crítica: " + currentTemperature + "°C. Aguarde mais tempo.",
+                        "Atenção",
                         JOptionPane.WARNING_MESSAGE
                 );
                 
@@ -149,46 +127,39 @@ public class ThermalCameraPanel extends JPanel {
             }
         }
 
-        // Evitar divisões por zero
-        double range = maxTemp - minTemp;
-        if (range == 0) {
-            range = 1; // Evitar divisão por zero
-        }
-
         // Renderizar a matriz de calor
         for (int row = 0; row < thermalData.temperatures.length; row++) {
             for (int col = 0; col < thermalData.temperatures[row].length; col++) {
                 double temp = thermalData.temperatures[row][col];
-                int colorValue = (int) ((temp - minTemp) / range * 255); // Normalização
+                int colorValue = (int) ((temp - minTemp) / (maxTemp - minTemp) * 255);
                 g.setColor(new Color(colorValue, 0, 255 - colorValue));
                 g.fillRect(col * cellWidth, row * cellHeight, cellWidth, cellHeight);
             }
         }
 
         // Renderizar a legenda
-        int legendHeight = getHeight() - 20;
+        int legendHeight = getHeight();
         int legendWidth = 50;
         int legendX = getWidth() - legendWidth - 10;
         int legendY = 10;
 
         g.setColor(Color.WHITE);
-        g.fillRect(legendX, legendY, legendWidth, legendHeight);
+        g.fillRect(legendX, legendY, legendWidth, legendHeight - 20);
 
         // Adicionar gradiente e valores de temperatura na legenda
-        for (int i = 0; i < legendHeight; i++) {
-            double temp = maxTemp - ((i / (double) legendHeight) * range);
-            int colorValue = (int) ((temp - minTemp) / range * 255);
+        for (int i = 0; i < legendHeight - 20; i++) {
+            double temp = maxTemp - ((i / (double) (legendHeight - 20)) * (maxTemp - minTemp));
+            int colorValue = (int) ((temp - minTemp) / (maxTemp - minTemp) * 255);
 
             g.setColor(new Color(colorValue, 0, 255 - colorValue));
             g.drawLine(legendX, legendY + i, legendX + legendWidth, legendY + i);
 
-            // Adicionar rótulos de temperatura em intervalos regulares
-            if (i % (legendHeight / 10) == 0) {
+            // Adicionar rótulos de temperatura em intervalos
+            if (i % 50 == 0) {
                 g.setColor(Color.BLACK);
                 g.drawString(String.format("%.1f°C", temp), legendX + legendWidth + 5, legendY + i);
             }
         }
     }
-
 
 }

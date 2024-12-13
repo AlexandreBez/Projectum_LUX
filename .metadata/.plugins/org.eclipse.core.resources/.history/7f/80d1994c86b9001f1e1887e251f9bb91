@@ -138,7 +138,7 @@ public class ThermalCameraPanel extends JPanel {
         int cellWidth = getWidth() / 8;
         int cellHeight = getHeight() / 8;
 
-        // Determinar valores mínimo e máximo da matriz de temperaturas
+        // Determinar valores mÃ­nimo e mÃ¡ximo da matriz de temperaturas
         double minTemp = Double.MAX_VALUE;
         double maxTemp = Double.MIN_VALUE;
 
@@ -149,46 +149,39 @@ public class ThermalCameraPanel extends JPanel {
             }
         }
 
-        // Evitar divisões por zero
-        double range = maxTemp - minTemp;
-        if (range == 0) {
-            range = 1; // Evitar divisão por zero
-        }
-
         // Renderizar a matriz de calor
         for (int row = 0; row < thermalData.temperatures.length; row++) {
             for (int col = 0; col < thermalData.temperatures[row].length; col++) {
                 double temp = thermalData.temperatures[row][col];
-                int colorValue = (int) ((temp - minTemp) / range * 255); // Normalização
+                int colorValue = (int) ((temp - minTemp) / (maxTemp - minTemp) * 255);
                 g.setColor(new Color(colorValue, 0, 255 - colorValue));
                 g.fillRect(col * cellWidth, row * cellHeight, cellWidth, cellHeight);
             }
         }
 
         // Renderizar a legenda
-        int legendHeight = getHeight() - 20;
+        int legendHeight = getHeight();
         int legendWidth = 50;
         int legendX = getWidth() - legendWidth - 10;
         int legendY = 10;
 
         g.setColor(Color.WHITE);
-        g.fillRect(legendX, legendY, legendWidth, legendHeight);
+        g.fillRect(legendX, legendY, legendWidth, legendHeight - 20);
 
         // Adicionar gradiente e valores de temperatura na legenda
-        for (int i = 0; i < legendHeight; i++) {
-            double temp = maxTemp - ((i / (double) legendHeight) * range);
-            int colorValue = (int) ((temp - minTemp) / range * 255);
+        for (int i = 0; i < legendHeight - 20; i++) {
+            double temp = maxTemp - ((i / (double) (legendHeight - 20)) * (maxTemp - minTemp));
+            int colorValue = (int) ((temp - minTemp) / (maxTemp - minTemp) * 255);
 
             g.setColor(new Color(colorValue, 0, 255 - colorValue));
             g.drawLine(legendX, legendY + i, legendX + legendWidth, legendY + i);
 
-            // Adicionar rótulos de temperatura em intervalos regulares
-            if (i % (legendHeight / 10) == 0) {
+            // Adicionar rÃ³tulos de temperatura em intervalos
+            if (i % 50 == 0) {
                 g.setColor(Color.BLACK);
-                g.drawString(String.format("%.1f°C", temp), legendX + legendWidth + 5, legendY + i);
+                g.drawString(String.format("%.1fÂ°C", temp), legendX + legendWidth + 5, legendY + i);
             }
         }
     }
-
 
 }
