@@ -9,20 +9,23 @@ import javax.swing.JPanel;
 import com.pi4j.Pi4J;
 import com.pi4j.context.Context;
 
-import raspberry_central_data.panels.MotorControlPanel;
 import raspberry_central_data.panels.RecordingControlPanel;
 import raspberry_central_data.panels.StopwatchPanel;
 import raspberry_central_data.panels.ThermalCameraPanel;
 
+/**
+ * Inicializa atraves do main o context, panels e etc
+ */
 public class MainApp {
+	
 	
     public static void main(String[] args) throws Exception {
     	
-        // Cria o Context do Pi4J
-        Context pi4j = Pi4J.newAutoContext();
+    	// slf4j para o pi4j
+    	System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "INFO");
     	
-        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "INFO");
-
+    	Context context = Pi4J.newAutoContext();
+    	ThermalCameraPanel cameraPanel = new ThermalCameraPanel(context);
         JFrame mainFrame = new JFrame();
 
         // Configurações principais
@@ -37,18 +40,17 @@ public class MainApp {
 
         // Adiciona os controles
         JPanel controlPanel = new JPanel(new GridLayout(1, 3));
-        controlPanel.add(new RecordingControlPanel(mainFrame, stopwatchPanel));
+        controlPanel.add(new RecordingControlPanel(mainFrame, stopwatchPanel, cameraPanel));
         controlPanel.add(stopwatchPanel);
-        controlPanel.add(new MotorControlPanel(pi4j));
         mainFrame.add(controlPanel, BorderLayout.NORTH);
 
         // Adiciona o painel da câmera
-        mainFrame.add(new ThermalCameraPanel(pi4j), BorderLayout.CENTER);
+        mainFrame.add(cameraPanel, BorderLayout.CENTER);
 
         // Torna a janela visível
         mainFrame.setVisible(true);
         
         // Finaliza o Context quando o programa for fechado
-        Runtime.getRuntime().addShutdownHook(new Thread(pi4j::shutdown));
+        Runtime.getRuntime().addShutdownHook(new Thread(context::shutdown));
     }
 }

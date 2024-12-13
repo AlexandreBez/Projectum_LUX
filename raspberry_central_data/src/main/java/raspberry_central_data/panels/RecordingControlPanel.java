@@ -13,7 +13,7 @@ public class RecordingControlPanel extends JPanel {
 	@SuppressWarnings("unused")
 	private JFrame parent;
 
-    public RecordingControlPanel(JFrame parent, StopwatchPanel stopwatchPanel) {
+    public RecordingControlPanel(JFrame parent, StopwatchPanel stopwatchPanel, ThermalCameraPanel thermalCameraPanel) {
         
         this.parent = parent;
         setLayout(new FlowLayout());
@@ -22,16 +22,17 @@ public class RecordingControlPanel extends JPanel {
         JButton startRecordingButton = new JButton("Iniciar Gravação");
         JButton stopRecordingButton = new JButton("Parar Gravação");
 
-        // Ação para iniciar a gravação
         startRecordingButton.addActionListener(e -> {
-        	stopwatchPanel.start();
+            stopwatchPanel.start();
+//            thermalCameraPanel.startVideoRecording("resources/temp/thermal_video.avi");
             JOptionPane.showMessageDialog(this, "Gravação iniciada.");
         });
 
-        // Ação para parar a gravação
         stopRecordingButton.addActionListener(e -> {
-        	stopwatchPanel.stop();
-        	new SaveDialogPanel(parent);
+            stopwatchPanel.stop();
+//            thermalCameraPanel.stopVideoRecording();
+//            thermalCameraPanel.saveTemperatureMatrix("resources/temp/temperature_matrix.csv");
+            JOptionPane.showMessageDialog(this, "Gravação encerrada.");
         });
 
         add(actualDate);

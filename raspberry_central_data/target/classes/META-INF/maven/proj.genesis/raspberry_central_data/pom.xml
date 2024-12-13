@@ -2,40 +2,40 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>proj.genesis</groupId>
   <artifactId>raspberry_central_data</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <name>raspberry_central_data</name>
   <description>raspberry_central_data for data analisys</description>
   
   	<dependencies>
+  	
 		<dependency>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-simple</artifactId>
 		    <version>2.0.0-alpha0</version>
 		</dependency>
-		<dependency>
-		    <groupId>com.pi4j</groupId>
-		    <artifactId>pi4j-plugin-raspberrypi</artifactId>
-		    <version>2.7.0</version>
-		</dependency>
+
 		<dependency>
 		    <groupId>com.pi4j</groupId>
 		    <artifactId>pi4j-core</artifactId>
 		    <version>2.7.0</version>
 		</dependency>
+		
 		<dependency>
 		    <groupId>com.pi4j</groupId>
-		    <artifactId>pi4j-plugin-pigpio</artifactId>
+		    <artifactId>pi4j-plugin-raspberrypi</artifactId>
 		    <version>2.7.0</version>
 		</dependency>
+		
 		<dependency>
 		    <groupId>com.pi4j</groupId>
-		    <artifactId>pi4j-library-pigpio</artifactId>
+		    <artifactId>pi4j-plugin-gpiod</artifactId>
 		    <version>2.7.0</version>
 		</dependency>
+		
 		<dependency>
-		    <groupId>com.pi4j</groupId>
-		    <artifactId>pi4j-plugin-linuxfs</artifactId>
-		    <version>2.7.0</version>
+		    <groupId>org.openpnp</groupId>
+		    <artifactId>opencv</artifactId>
+		    <version>4.5.5-0</version>
 		</dependency>
 
 	</dependencies>

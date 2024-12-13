@@ -1,12 +1,12 @@
 package raspberry_central_data.panels;
 
 import com.pi4j.context.Context;
-import com.pi4j.io.gpio.digital.DigitalInput;
-import com.pi4j.io.gpio.digital.DigitalStateChangeListener;
-import com.pi4j.io.gpio.digital.PullResistance;
-import com.pi4j.io.i2c.I2C;
+
+import raspberry_central_data.configs.AMG8833Config;
+import raspberry_central_data.core.ThermalData;
 
 import javax.swing.*;
+
 import java.awt.*;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -14,119 +14,57 @@ import java.util.TimerTask;
 @SuppressWarnings("serial")
 public class ThermalCameraPanel extends JPanel {
 
-    private static final int I2C_BUS = 1;
-    private static final int AMG8833_ADDRESS = 0x68;
-    private final I2C i2c;
-    private final DigitalInput interruptPin; // Pino INT
-    private final double[][] temperatures;
-    private final Timer updateTimer;
+    private AMG8833Config amg8833Config = new AMG8833Config();
+    private ThermalData thermalData = new ThermalData();
     private boolean cameraActive = true;
+    private final Timer updateTimer;
 
     public ThermalCameraPanel(Context pi4j) {
-        // Configuração do I2C
-        this.i2c = pi4j.i2c().create(I2C.newConfigBuilder(pi4j)
-                .id("amg8833")
-                .bus(I2C_BUS)
-                .device(AMG8833_ADDRESS)
-                .build());
 
-        // Configuração do pino INT (GPIO24)
-        this.interruptPin = pi4j.din().create(DigitalInput.newConfigBuilder(pi4j)
-                .id("amg8833-int")
-                .address(24) // GPIO24
-                .pull(PullResistance.PULL_DOWN)
-                .provider("pigpio-digital-input")
-                .build());
-
-        // Listener para eventos do pino INT
-        interruptPin.addListener((DigitalStateChangeListener) event -> {
+    	this.updateTimer = new Timer();
+    	
+    	amg8833Config.AMG8833InterruptConfig(pi4j).addListener(event -> {
+    		
             if (event.state().isHigh() && cameraActive) {
-                handleInterrupt();
+                double maxTemperature = thermalData.getMaxTemperature();
+                if (maxTemperature >= 75 && maxTemperature < 80) {
+                	
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(
+                                this,
+                                "Atenção! A temperatura atingiu " + maxTemperature + "°C.\nPor favor, monitore o sistema.",
+                                "Aviso de Temperatura",
+                                JOptionPane.WARNING_MESSAGE
+                        );
+                    });
+                    
+                } else if (maxTemperature >= 80) {
+                    showCriticalTemperatureDialog();
+                    cameraActive = false;
+                    updateTimer.cancel();
+                }
             }
+            
         });
 
-        this.temperatures = new double[8][8];
-        this.updateTimer = new Timer();
 
         setBackground(Color.BLACK);
         setPreferredSize(new Dimension(900, 700));
 
-        // Timer para atualização periódica da interface gráfica
         updateTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
                 if (cameraActive) {
-                    updateTemperatures();
+                	thermalData.updateTemperatures(amg8833Config, pi4j);
                     SwingUtilities.invokeLater(() -> repaint());
                 }
             }
-        }, 0, 1000);
+        }, 0, 500);
+        
     }
-
-    // Atualiza os dados de temperatura da câmera
-    private void updateTemperatures() {
-        try {
-            byte[] buffer = new byte[64 * 2];
-            i2c.readRegister(0x80, buffer, 0, buffer.length);
-
-            for (int i = 0; i < 64; i++) {
-                int tempRaw = ((buffer[i * 2 + 1] & 0xFF) << 8) | (buffer[i * 2] & 0xFF);
-                temperatures[i / 8][i % 8] = tempRaw * 0.25; // Conversão para Celsius
-            }
-
-            // Monitora temperaturas críticas
-            monitorCriticalTemperatures();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    // Manipula eventos do pino INT
-    private void handleInterrupt() {
-        double maxTemperature = getMaxTemperature();
-        if (maxTemperature >= 75 && maxTemperature < 80) {
-            showTemperatureWarning(maxTemperature);
-        } else if (maxTemperature >= 80) {
-            showCriticalTemperatureDialog();
-            cameraActive = false; // Desativa a câmera
-            updateTimer.cancel(); // Para o timer de atualizações
-        }
-    }
-
-    // Monitora temperaturas críticas
-    private void monitorCriticalTemperatures() {
-        double maxTemperature = getMaxTemperature();
-        if (maxTemperature >= 75 && maxTemperature < 80) {
-            showTemperatureWarning(maxTemperature);
-        } else if (maxTemperature >= 80) {
-            handleInterrupt();
-        }
-    }
-
-    // Obtém a temperatura máxima da matriz
-    private double getMaxTemperature() {
-        double maxTemp = Double.MIN_VALUE;
-        for (double[] row : temperatures) {
-            for (double temp : row) {
-                maxTemp = Math.max(maxTemp, temp);
-            }
-        }
-        return maxTemp;
-    }
-
-    private void showTemperatureWarning(double temperature) {
-        SwingUtilities.invokeLater(() -> {
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Atenção! A temperatura atingiu " + temperature + "°C.\nPor favor, monitore o sistema.",
-                    "Aviso de Temperatura",
-                    JOptionPane.WARNING_MESSAGE
-            );
-        });
-    }
-
+    
     private void showCriticalTemperatureDialog() {
+    	
         JFrame criticalFrame = new JFrame("Alerta Crítico - Alta Temperatura");
         criticalFrame.setSize(400, 300);
         criticalFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -138,23 +76,30 @@ public class ThermalCameraPanel extends JPanel {
         );
 
         JButton validateTemperatureButton = new JButton("Validar Temperatura");
+        
         validateTemperatureButton.addActionListener(e -> {
-            double currentTemperature = getMaxTemperature();
+        	
+            double currentTemperature = thermalData.getMaxTemperature();
+            
             if (currentTemperature <= 70) {
+            	
                 JOptionPane.showMessageDialog(
                         criticalFrame,
                         "Temperatura estabilizada em " + currentTemperature + "°C. Sistema pode continuar.",
                         "Temperatura Estabilizada",
                         JOptionPane.INFORMATION_MESSAGE
                 );
+                
                 criticalFrame.dispose();
             } else {
+            	
                 JOptionPane.showMessageDialog(
                         criticalFrame,
                         "Temperatura ainda crítica: " + currentTemperature + "°C. Aguarde mais tempo.",
                         "Atenção",
                         JOptionPane.WARNING_MESSAGE
                 );
+                
             }
         });
 
@@ -171,13 +116,50 @@ public class ThermalCameraPanel extends JPanel {
         int cellWidth = getWidth() / 8;
         int cellHeight = getHeight() / 8;
 
-        for (int row = 0; row < temperatures.length; row++) {
-            for (int col = 0; col < temperatures[row].length; col++) {
-                double temp = temperatures[row][col];
-                int colorValue = Math.min(255, (int) (temp * 2));
+        // Determinar valores mínimo e máximo da matriz de temperaturas
+        double minTemp = Double.MAX_VALUE;
+        double maxTemp = Double.MIN_VALUE;
+
+        for (double[] row : thermalData.temperatures) {
+            for (double temp : row) {
+                minTemp = Math.min(minTemp, temp);
+                maxTemp = Math.max(maxTemp, temp);
+            }
+        }
+
+        // Renderizar a matriz de calor
+        for (int row = 0; row < thermalData.temperatures.length; row++) {
+            for (int col = 0; col < thermalData.temperatures[row].length; col++) {
+                double temp = thermalData.temperatures[row][col];
+                int colorValue = (int) ((temp - minTemp) / (maxTemp - minTemp) * 255);
                 g.setColor(new Color(colorValue, 0, 255 - colorValue));
                 g.fillRect(col * cellWidth, row * cellHeight, cellWidth, cellHeight);
             }
         }
+
+        // Renderizar a legenda
+        int legendHeight = getHeight();
+        int legendWidth = 50;
+        int legendX = getWidth() - legendWidth - 10;
+        int legendY = 10;
+
+        g.setColor(Color.WHITE);
+        g.fillRect(legendX, legendY, legendWidth, legendHeight - 20);
+
+        // Adicionar gradiente e valores de temperatura na legenda
+        for (int i = 0; i < legendHeight - 20; i++) {
+            double temp = maxTemp - ((i / (double) (legendHeight - 20)) * (maxTemp - minTemp));
+            int colorValue = (int) ((temp - minTemp) / (maxTemp - minTemp) * 255);
+
+            g.setColor(new Color(colorValue, 0, 255 - colorValue));
+            g.drawLine(legendX, legendY + i, legendX + legendWidth, legendY + i);
+
+            // Adicionar rótulos de temperatura em intervalos
+            if (i % 50 == 0) {
+                g.setColor(Color.BLACK);
+                g.drawString(String.format("%.1f°C", temp), legendX + legendWidth + 5, legendY + i);
+            }
+        }
     }
+
 }

@@ -1,0 +1,43 @@
+package raspberry_central_data.panels;
+
+import javax.swing.*;
+import java.awt.*;
+import java.util.Date;
+
+public class RecordingControlPanel extends JPanel {
+
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	@SuppressWarnings("unused")
+	private JFrame parent;
+
+    public RecordingControlPanel(JFrame parent, StopwatchPanel stopwatchPanel, ThermalCameraPanel thermalCameraPanel) {
+        
+        this.parent = parent;
+        setLayout(new FlowLayout());
+        
+        JLabel actualDate = new JLabel(new Date().toString());
+        JButton startRecordingButton = new JButton("Iniciar Gravação");
+        JButton stopRecordingButton = new JButton("Parar Gravação");
+
+        startRecordingButton.addActionListener(e -> {
+            stopwatchPanel.start();
+            thermalCameraPanel.startVideoRecording("resources/temp/thermal_video.avi");
+            JOptionPane.showMessageDialog(this, "Gravação iniciada.");
+        });
+
+        stopRecordingButton.addActionListener(e -> {
+            stopwatchPanel.stop();
+            thermalCameraPanel.stopVideoRecording();
+            thermalCameraPanel.saveTemperatureMatrix("resources/temp/temperature_matrix.csv");
+            JOptionPane.showMessageDialog(this, "Gravação encerrada.");
+        });
+
+        add(actualDate);
+        add(startRecordingButton);
+        add(stopRecordingButton);
+    }
+}
+

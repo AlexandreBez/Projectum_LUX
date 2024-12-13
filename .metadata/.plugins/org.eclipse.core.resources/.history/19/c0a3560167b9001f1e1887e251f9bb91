@@ -1,0 +1,5 @@
+package raspberry_central_data.core;
+
+public class AMG8833Config {
+
+}

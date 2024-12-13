@@ -1,0 +1,258 @@
+package raspberry_central_data.panels;
+
+import com.pi4j.context.Context;
+import com.pi4j.io.gpio.digital.DigitalInput;
+import com.pi4j.io.gpio.digital.PullResistance;
+import com.pi4j.io.i2c.I2C;
+
+import raspberry_central_data.configs.AMG8833Config;
+
+import javax.swing.*;
+
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.opencv.videoio.VideoWriter;
+
+import java.awt.*;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import java.io.FileWriter;
+import java.io.IOException;
+
+@SuppressWarnings("serial")
+public class ThermalCameraPanel extends JPanel {
+
+	private VideoWriter videoWriter;
+    private final double[][] temperatures;
+    private final Timer updateTimer;
+    private boolean cameraActive = true;
+    AMG8833Config amg8833Config = new AMG8833Config();
+
+    public ThermalCameraPanel(Context pi4j) {
+
+    	amg8833Config.AMG8833InterruptConfig(pi4j).addListener(event -> {
+            if (event.state().isHigh() && cameraActive) {
+                handleInterrupt();
+            }
+        });
+
+        this.temperatures = new double[8][8];
+        this.updateTimer = new Timer();
+
+        setBackground(Color.BLACK);
+        setPreferredSize(new Dimension(900, 700));
+
+        updateTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (cameraActive) {
+                    updateTemperatures();
+                    SwingUtilities.invokeLater(() -> repaint());
+                }
+            }
+        }, 0, 500);
+        
+    }
+
+	private void updateTemperatures() {
+        try {
+            byte[] buffer = new byte[64 * 2];
+            i2c.readRegister(0x80, buffer, 0, buffer.length);
+
+            for (int i = 0; i < 64; i++) {
+                int tempRaw = ((buffer[i * 2 + 1] & 0xFF) << 8) | (buffer[i * 2] & 0xFF);
+                temperatures[i / 8][i % 8] = tempRaw * 0.25;
+            }
+
+            monitorCriticalTemperatures();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void handleInterrupt() {
+        double maxTemperature = getMaxTemperature();
+        if (maxTemperature >= 75 && maxTemperature < 80) {
+            showTemperatureWarning(maxTemperature);
+        } else if (maxTemperature >= 80) {
+            showCriticalTemperatureDialog();
+            cameraActive = false; // Desativa a câmera
+            updateTimer.cancel(); // Para o timer de atualizações
+        }
+    }
+
+    private void monitorCriticalTemperatures() {
+        double maxTemperature = getMaxTemperature();
+        if (maxTemperature >= 75 && maxTemperature < 80) {
+            showTemperatureWarning(maxTemperature);
+        } else if (maxTemperature >= 80) {
+            handleInterrupt();
+        }
+    }
+
+    private double getMaxTemperature() {
+        double maxTemp = Double.MIN_VALUE;
+        for (double[] row : temperatures) {
+            for (double temp : row) {
+                maxTemp = Math.max(maxTemp, temp);
+            }
+        }
+        return maxTemp;
+    }
+
+    private void showTemperatureWarning(double temperature) {
+        SwingUtilities.invokeLater(() -> {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Atenção! A temperatura atingiu " + temperature + "°C.\nPor favor, monitore o sistema.",
+                    "Aviso de Temperatura",
+                    JOptionPane.WARNING_MESSAGE
+            );
+        });
+    }
+
+    private void showCriticalTemperatureDialog() {
+        JFrame criticalFrame = new JFrame("Alerta Crítico - Alta Temperatura");
+        criticalFrame.setSize(400, 300);
+        criticalFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
+        criticalFrame.setLayout(new GridLayout(3, 1));
+
+        JLabel messageLabel = new JLabel(
+                "<html><center>Temperatura Crítica!<br>A temperatura ultrapassou 80°C.</center></html>",
+                JLabel.CENTER
+        );
+
+        JButton validateTemperatureButton = new JButton("Validar Temperatura");
+        validateTemperatureButton.addActionListener(e -> {
+            double currentTemperature = getMaxTemperature();
+            if (currentTemperature <= 70) {
+                JOptionPane.showMessageDialog(
+                        criticalFrame,
+                        "Temperatura estabilizada em " + currentTemperature + "°C. Sistema pode continuar.",
+                        "Temperatura Estabilizada",
+                        JOptionPane.INFORMATION_MESSAGE
+                );
+                criticalFrame.dispose();
+            } else {
+                JOptionPane.showMessageDialog(
+                        criticalFrame,
+                        "Temperatura ainda crítica: " + currentTemperature + "°C. Aguarde mais tempo.",
+                        "Atenção",
+                        JOptionPane.WARNING_MESSAGE
+                );
+            }
+        });
+
+        criticalFrame.add(messageLabel);
+        criticalFrame.add(validateTemperatureButton);
+        criticalFrame.setLocationRelativeTo(null);
+        criticalFrame.setVisible(true);
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+
+        int cellWidth = getWidth() / 8;
+        int cellHeight = getHeight() / 8;
+
+        // Determinar valores mínimo e máximo da matriz de temperaturas
+        double minTemp = Double.MAX_VALUE;
+        double maxTemp = Double.MIN_VALUE;
+
+        for (double[] row : temperatures) {
+            for (double temp : row) {
+                minTemp = Math.min(minTemp, temp);
+                maxTemp = Math.max(maxTemp, temp);
+            }
+        }
+
+        // Renderizar a matriz de calor
+        for (int row = 0; row < temperatures.length; row++) {
+            for (int col = 0; col < temperatures[row].length; col++) {
+                double temp = temperatures[row][col];
+                int colorValue = (int) ((temp - minTemp) / (maxTemp - minTemp) * 255); // Interpolar cores dinamicamente
+                g.setColor(new Color(colorValue, 0, 255 - colorValue));
+                g.fillRect(col * cellWidth, row * cellHeight, cellWidth, cellHeight);
+            }
+        }
+
+        // Renderizar a legenda
+        int legendHeight = getHeight();
+        int legendWidth = 50;
+        int legendX = getWidth() - legendWidth - 10;
+        int legendY = 10;
+
+        g.setColor(Color.WHITE);
+        g.fillRect(legendX, legendY, legendWidth, legendHeight - 20);
+
+        // Adicionar gradiente e valores de temperatura na legenda
+        for (int i = 0; i < legendHeight - 20; i++) {
+            double temp = maxTemp - ((i / (double) (legendHeight - 20)) * (maxTemp - minTemp));
+            int colorValue = (int) ((temp - minTemp) / (maxTemp - minTemp) * 255);
+
+            g.setColor(new Color(colorValue, 0, 255 - colorValue));
+            g.drawLine(legendX, legendY + i, legendX + legendWidth, legendY + i);
+
+            // Adicionar rótulos de temperatura em intervalos
+            if (i % 50 == 0) {
+                g.setColor(Color.BLACK);
+                g.drawString(String.format("%.1f°C", temp), legendX + legendWidth + 5, legendY + i);
+            }
+        }
+    }
+
+    public void saveTemperatureMatrix(String filePath) {
+        try (FileWriter writer = new FileWriter(filePath)) {
+            for (double[] row : temperatures) {
+                for (int col = 0; col < row.length; col++) {
+                    writer.write(String.format("%.2f", row[col]));
+                    if (col < row.length - 1) {
+                        writer.write(",");
+                    }
+                }
+                writer.write("\n");
+            }
+            JOptionPane.showMessageDialog(this, "Matriz de temperatura salva em: " + filePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Erro ao salvar matriz de temperatura.", "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public void startVideoRecording(String filePath) {
+        int frameWidth = 8;
+        int frameHeight = 8;
+        videoWriter = new VideoWriter(filePath, VideoWriter.fourcc('M', 'J', 'P', 'G'), 10,
+                new Size(frameWidth, frameHeight), false);
+
+        if (!videoWriter.isOpened()) {
+            JOptionPane.showMessageDialog(this, "Erro ao iniciar gravação de vídeo.", "Erro", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        JOptionPane.showMessageDialog(this, "Gravação de vídeo iniciada.");
+    }
+
+    public void stopVideoRecording() {
+        if (videoWriter != null) {
+            videoWriter.release();
+            JOptionPane.showMessageDialog(this, "Gravação de vídeo encerrada e salva.");
+        }
+    }
+
+    public void writeFrameToVideo() {
+        if (videoWriter != null) {
+            Mat frame = new Mat(8, 8, CvType.CV_8UC1);
+            for (int row = 0; row < temperatures.length; row++) {
+                for (int col = 0; col < temperatures[row].length; col++) {
+                    frame.put(row, col, (int) Math.min(255, temperatures[row][col] * 2));
+                }
+            }
+            videoWriter.write(frame);
+        }
+    }
+    
+}
