@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.Cursor?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.text.Text?>
+
+<AnchorPane prefHeight="870.0" prefWidth="1600.0" style="-fx-background-color: BLACK;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="projectum_lux.controllers.MainAppController">
+   <children>
+      <SplitPane dividerPositions="0.5" prefHeight="870.0" prefWidth="1600.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <items>
+            <AnchorPane prefHeight="870.0" prefWidth="1290.0" style="-fx-background-color: BLACK;" SplitPane.resizableWithParent="false">
+               <children>
+                  <TabPane prefHeight="870.0" prefWidth="1290.0" tabClosingPolicy="UNAVAILABLE">
+                    <tabs>
+                      <Tab text="Thermal Camera">
+                           <content>
+                              <Canvas fx:id="ThermalCameraView" height="840.0" width="1290.0" />
+                           </content>
+                        </Tab>
+                      <Tab text="OV5647 Camera">
+                           <content>
+                              <Canvas fx:id="OV5647CameraView" height="841.0" width="1290.0" />
+                           </content>
+                        </Tab>
+                    </tabs>
+                  </TabPane>
+               </children>
+            </AnchorPane>
+          <AnchorPane prefHeight="870.0" prefWidth="270.0" style="-fx-background-color: BLACK;">
+               <children>
+                  <ImageView fitHeight="178.0" fitWidth="173.0" layoutX="72.0" layoutY="54.0" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../img/Projectum%20LUX.png" />
+                     </image>
+                  </ImageView>
+                  <Text fill="WHITE" layoutX="91.0" layoutY="343.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Thermal Camera" underline="true" wrappingWidth="143.0" AnchorPane.rightAnchor="68.0" AnchorPane.topAnchor="323.0">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                  </Text>
+                  <Button fx:id="RecordThermalCameraBtn" contentDisplay="CENTER" layoutX="106.0" layoutY="361.0" mnemonicParsing="false" onAction="#onGravarVideoTermica" style="-fx-background-color: TOMATO;" text="Record" textAlignment="CENTER" textFill="WHITE">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor>
+                  </Button>
+                  <Button fx:id="StopThermalCameraBtn" layoutX="178.0" layoutY="361.0" mnemonicParsing="false" onAction="#onTerminarTermica" style="-fx-background-color: TOMATO;" text="Stop" textFill="WHITE">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor>
+                  </Button>
+                  <Text fill="WHITE" layoutX="91.0" layoutY="429.0" strokeType="OUTSIDE" strokeWidth="0.0" text="OV5647 Camera" underline="true" wrappingWidth="142.99999999999994">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                  </Text>
+                  <Button fx:id="RecordOV5647CameraBtn" contentDisplay="CENTER" layoutX="103.0" layoutY="451.0" mnemonicParsing="false" onAction="#onGravarInfra" style="-fx-background-color: TOMATO;" text="Record" textAlignment="CENTER" textFill="WHITE">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor>
+                  </Button>
+                  <Button fx:id="StopOV5647CameraBtn" layoutX="176.0" layoutY="451.0" mnemonicParsing="false" onAction="#onTerminarInfra" style="-fx-background-color: TOMATO;" text="Stop" textFill="WHITE">
+                     <cursor>
+                        <Cursor fx:constant="HAND" />
+                     </cursor>
+                  </Button>
+                  <Text fill="BLUE" layoutX="94.0" layoutY="612.0" strokeType="OUTSIDE" strokeWidth="0.0" text="0 -">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                  </Text>
+                  <TextField layoutX="174.0" layoutY="591.0" prefHeight="26.0" prefWidth="54.0" style="-fx-background-color: #0000FF; -fx-border-color: WHITE; -fx-border-width: 2;">
+                     <cursor>
+                        <Cursor fx:constant="TEXT" />
+                     </cursor>
+                  </TextField>
+                  <Text fill="DODGERBLUE" layoutX="96.0" layoutY="641.0" strokeType="OUTSIDE" strokeWidth="0.0" text="0 to 20">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                  </Text>
+                  <TextField layoutX="174.0" layoutY="619.0" prefHeight="26.0" prefWidth="54.0" style="-fx-background-color: #1E90FF; -fx-border-color: WHITE; -fx-border-width: 2;">
+                     <cursor>
+                        <Cursor fx:constant="TEXT" />
+                     </cursor>
+                  </TextField>
+                  <Text fill="#00fff6" layoutX="96.0" layoutY="667.0" strokeType="OUTSIDE" strokeWidth="0.0" text="20 a 40">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                  </Text>
+                  <TextField layoutX="174.0" layoutY="648.0" prefHeight="26.0" prefWidth="54.0" style="-fx-background-color: #00FFF6; -fx-border-color: WHITE; -fx-border-width: 2;">
+                     <cursor>
+                        <Cursor fx:constant="TEXT" />
+                     </cursor>
+                  </TextField>
+                  <Text fill="YELLOW" layoutX="96.0" layoutY="695.0" strokeType="OUTSIDE" strokeWidth="0.0" text="40 a 60">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                  </Text>
+                  <TextField layoutX="174.0" layoutY="676.0" prefHeight="26.0" prefWidth="54.0" style="-fx-background-color: #FFFF00; -fx-border-color: WHITE; -fx-border-width: 2;">
+                     <cursor>
+                        <Cursor fx:constant="TEXT" />
+                     </cursor>
+                  </TextField>
+                  <Text fill="ORANGE" layoutX="96.0" layoutY="723.0" strokeType="OUTSIDE" strokeWidth="0.0" text="60 a 80">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                  </Text>
+                  <TextField layoutX="174.0" layoutY="704.0" prefHeight="26.0" prefWidth="54.0" style="-fx-background-color: #FFA500; -fx-border-color: WHITE; -fx-border-width: 2;">
+                     <cursor>
+                        <Cursor fx:constant="TEXT" />
+                     </cursor>
+                  </TextField>
+                  <Text fill="RED" layoutX="95.0" layoutY="753.0" strokeType="OUTSIDE" strokeWidth="0.0" text="80 +">
+                     <font>
+                        <Font name="System Bold" size="18.0" />
+                     </font>
+                  </Text>
+                  <TextField layoutX="174.0" layoutY="732.0" prefHeight="26.0" prefWidth="54.0" style="-fx-background-color: #FF0000; -fx-border-color: WHITE; -fx-border-width: 2;">
+                     <cursor>
+                        <Cursor fx:constant="TEXT" />
+                     </cursor>
+                  </TextField>
+                  <Label layoutX="83.0" layoutY="556.0" text="Thermal camera legend" textFill="WHITE">
+                     <font>
+                        <Font name="System Bold" size="14.0" />
+                     </font>
+                  </Label>
+                  <Button fx:id="SystemInfo" layoutX="114.0" layoutY="263.0" mnemonicParsing="false" onAction="#onSystemInfoCheck" prefHeight="25.0" prefWidth="98.0" style="-fx-background-color: TOMATO;" text="System Info" textFill="WHITE" />
+               </children>
+            </AnchorPane>
+        </items>
+      </SplitPane>
+   </children>
+</AnchorPane>

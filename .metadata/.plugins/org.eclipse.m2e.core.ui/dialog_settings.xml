@@ -15,6 +15,7 @@
 	</section>
 	<section name="MavenProjectWizardLocationPage">
 		<list key="location">
+			<item value="C:\Users\Lucas\OneDrive\Área de Trabalho\Projectum_LUX\raspberry_central_data"/>
 			<item value="C:\Users\Lucas\OneDrive\Área de Trabalho\Projectum_LUX\lux_rasp"/>
 		</list>
 		<list key="projectNameTemplate">
@@ -57,14 +58,22 @@
 	</section>
 	<section name="MavenProjectWizardArtifactPage">
 		<list key="groupId">
+			<item value="genesis"/>
+			<item value="projectum_lux"/>
+			<item value="vitascientia"/>
+			<item value="proj.genesis"/>
 			<item value="lux"/>
 			<item value="com.lux"/>
 		</list>
 		<list key="name">
+			<item value="lux"/>
 			<item value="raspberry_central_data"/>
 			<item value="raspberry_central_controller"/>
 		</list>
 		<list key="artifactId">
+			<item value="projectum_lux"/>
+			<item value="genesis"/>
+			<item value="lux"/>
 			<item value="raspberry_central_data"/>
 			<item value="raaspberry_central_data"/>
 			<item value="raspberry_central_controller"/>

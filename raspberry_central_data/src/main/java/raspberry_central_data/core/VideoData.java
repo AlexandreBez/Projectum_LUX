@@ -1,5 +1,0 @@
-package raspberry_central_data.core;
-
-public class VideoData {
-
-}

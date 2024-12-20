@@ -1,0 +1,4 @@
+Unzip and save in a separate folder the javafx sdk
+on eclipse at run configurations add the below argument with the path for you folder with the sdk lib path
+
+--module-path "C:/javafx-sdk-21.0.5/lib" --add-modules javafx.controls,javafx.fxml,javafx.base,javafx.graphics,javafx.media,javafx.swing,javafx.web

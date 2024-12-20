@@ -1,147 +1,165 @@
-#include "U8glib.h"
-#include <Stepper.h> // Biblioteca para controle do motor de passo
-
-#define LED_MAX_INTENSITY 400
-#define LED_QUANTITY 10
-
-U8GLIB_SSD1306_128X64 u8g(U8G_I2C_OPT_NO_ACK);
-
-// Configuração dos pinos dos LEDs
-const int ledPin[] = {44, 45, 2, 3, 4, 5, 6, 7, 8, 9};
-int pwm_led = 0; // Valor PWM para os LEDs
-
 // Configuração dos pinos do motor de passo
-const int IN1 = 30;
-const int IN2 = 31;
-const int IN3 = 32;
-const int IN4 = 33;
+const int IN1 = 32;
+const int IN2 = 33;
+const int IN3 = 34;
+const int IN4 = 35;
 
-// Configuração do motor de passo
-const int STEPS_PER_REV = 2048; // Passos por rotação (ajuste conforme necessário)
-Stepper stepper(STEPS_PER_REV, IN1, IN3, IN2, IN4); // Configuração em sequência
+// Configuração dos LEDs
+const int UV_LED_PINS[] = { 8, 7, 6, 5, 4, 3, 44, 45 };
+const int IR_LED_PINS[] = { 10, 9 };
+const int LUX_LED_PINS[] = { 12, 11 };
 
-// Variável para controlar a velocidade do motor
-int motorSpeed = 10; // Velocidade inicial do motor (RPM)
+// Configuração do LED em MCD
+const int MAX_MCD_UV = 400;
+const int MAX_MCD_IR = 119;
+const int MAX_MCD_LUX = 14000;
 
-// Função para calcular a intensidade luminosa
-float lux_intensity() {
-  float duty_cycle = pwm_led / 255.0;
-  return LED_MAX_INTENSITY * duty_cycle;
-}
+// Variáveis globais
+int intensidadeMCD_UV = 0;
+int intensidadeMCD_IR = 0;
+int intensidadeMCD_LUX = 0;
 
-// Função para calcular lúmens
-float calc_lumens() {
-  float mcd = lux_intensity();
-  float candelas = mcd / 1000.0;
-  float angle_degrees = 30.0;
-  float angle_radians = radians(angle_degrees / 2.0);
-  float area_angular = 2 * PI * (1 - cos(angle_radians));
-  return candelas * area_angular;
-}
+// Variáveis do motor
+int stepDelay = 10;
+int velocidadeMotor = 0;
+int stepIndex = 0;
+bool sentidoHorario = true;
+bool isMotorAtivo = false;
 
-// Função para exibir dados no display
-void drawDisplay(float intensity, float lumens) {
-  u8g.firstPage();
-  do {
-    u8g.setFont(u8g_font_6x10);
-    u8g.setPrintPos(0, 10);
-    u8g.print(F("PWM: "));
-    u8g.print(pwm_led);
-
-    u8g.setPrintPos(0, 25);
-    u8g.print(F("Intensity: "));
-    u8g.print(intensity, 1);
-    u8g.println(F(" mcd"));
-
-    u8g.setPrintPos(0, 40);
-    u8g.print(F("Lumens: "));
-    u8g.print(lumens, 6);
-    u8g.println(F(" lm"));
-
-    u8g.setPrintPos(0, 55);
-    u8g.print(F("Motor RPM: "));
-    u8g.print(motorSpeed);
-  } while (u8g.nextPage());
-}
+// Sequência de passos do motor para o driver ULN2003
+const int stepSequence[8][4] = {
+  { 1, 0, 0, 0 },
+  { 1, 1, 0, 0 },
+  { 0, 1, 0, 0 },
+  { 0, 1, 1, 0 },
+  { 0, 0, 1, 0 },
+  { 0, 0, 1, 1 },
+  { 0, 0, 0, 1 },
+  { 1, 0, 0, 1 }
+};
 
 void setup() {
-  Serial.begin(9600); // Inicializa a comunicação Serial
+  Serial.begin(9600);
 
-  // Configura os pinos dos LEDs como saída
-  for (int i = 0; i < LED_QUANTITY; i++) {
-    pinMode(ledPin[i], OUTPUT);
+  // Configuração dos LEDs
+  for (int i = 0; i < 12; i++) {
+    pinMode(UV_LED_PINS[i], OUTPUT);
+    analogWrite(UV_LED_PINS[i], 0);
+    pinMode(IR_LED_PINS[i], OUTPUT);
+    pinMode(LUX_LED_PINS[i], OUTPUT);
+    analogWrite(IR_LED_PINS[i], 0);
+    analogWrite(LUX_LED_PINS[i], 0);
   }
 
-  // Configura os pinos do motor de passo
-  stepper.setSpeed(motorSpeed);
+  // Configuração dos pinos do motor
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
 
-  // Mensagem inicial no display
-  u8g.setFont(u8g_font_6x10);
-  u8g.firstPage();
-  do {
-    u8g.setPrintPos(0, 10);
-    u8g.println(F("System ready..."));
-    u8g.setPrintPos(0, 25);
-    u8g.println(F("Enter PWM/Motor RPM"));
-  } while (u8g.nextPage());
-
-  delay(1000);
+  Serial.println("Sistema iniciado. Use os comandos:");
+  Serial.println("RPM:<valor>, UV:<valor>, IR:<valor>, LUX:<valor>, STATUS ou RESET.");
+  Serial.println("Limite para cada: RPM(-15(Retrogrado) ate 15(Progressivo)), UV(0 ate 400), LUX(0 ate 14000), IR(0 ate 119)");
 }
 
 void loop() {
-  // Verifica se há dados disponíveis no Serial
-  if (Serial.available() > 0) {
-    String input = Serial.readStringUntil('\n'); // Lê a entrada como String
-
-    // Processa a entrada como valor PWM ou velocidade do motor
-    if (input.startsWith("PWM:")) {
-      int new_pwm = input.substring(4).toInt(); // Extrai o valor após "PWM:"
-
-      // Verifica se o valor está no intervalo válido (0 a 255)
-      if (new_pwm >= 0 && new_pwm <= 255) {
-        pwm_led = new_pwm;
-
-        // Calcula intensidade e lúmens com base no novo PWM
-        float total_lumen = calc_lumens() * LED_QUANTITY;
-        float intensity = lux_intensity();
-
-        // Atualiza todos os LEDs
-        for (int i = 0; i < LED_QUANTITY; i++) {
-          analogWrite(ledPin[i], pwm_led);
-        }
-
-        // Atualiza o display com os valores
-        drawDisplay(intensity, total_lumen);
-
-        // Feedback no Serial Monitor
-        Serial.print(F("PWM atualizado: "));
-        Serial.println(pwm_led);
-      } else {
-        Serial.println(F("Valor invalido! Insira entre 0 e 255."));
-      }
-    } else if (input.startsWith("RPM:")) {
-      int new_speed = input.substring(4).toInt(); // Extrai o valor após "RPM:"
-
-      // Verifica se o valor está no intervalo válido
-      if (new_speed > 0 && new_speed <= 15) { // Máx: 15 RPM (ajuste conforme necessário)
-        motorSpeed = new_speed;
-        stepper.setSpeed(motorSpeed);
-
-        // Atualiza o display com o valor do RPM
-        drawDisplay(lux_intensity(), calc_lumens() * LED_QUANTITY);
-
-        // Feedback no Serial Monitor
-        Serial.print(F("Velocidade do motor atualizada: "));
-        Serial.print(motorSpeed);
-        Serial.println(F(" RPM"));
-      } else {
-        Serial.println(F("Valor invalido! Insira RPM entre 1 e 15."));
-      }
-    } else {
-      Serial.println(F("Comando invalido! Use PWM:<valor> ou RPM:<valor>."));
-    }
+  if (Serial.available()) {
+    String comando = Serial.readStringUntil('\n');
+    comando.trim();
+    processarComando(comando);
   }
 
-  // Gira o motor continuamente com a velocidade configurada
-  stepper.step(STEPS_PER_REV / 100); // Pequenos passos para movimento contínuo
+  // Atualiza o motor se ativo
+  if (isMotorAtivo) {
+    motorStep(sentidoHorario);
+    delay(stepDelay);
+  }
+}
+
+void processarComando(String comando) {
+  if (comando.startsWith("RPM:")) {
+    velocidadeMotor = comando.substring(4).toInt();
+
+    if (velocidadeMotor == 0) {
+      isMotorAtivo = false;
+      desligarMotor();
+      Serial.println("Motor desligado.");
+    } else {
+      isMotorAtivo = true;
+      sentidoHorario = (velocidadeMotor >= 0);
+      stepDelay = map(abs(velocidadeMotor), 0, 15, 500, 10);
+
+      Serial.println("Velocidade do motor ajustada para: " + String(velocidadeMotor) + " RPM");
+    }
+  } else if (comando.startsWith("UV:")) {
+    intensidadeMCD_UV = constrain(comando.substring(3).toInt(), 0, MAX_MCD_UV);
+    int pwmValue = map(intensidadeMCD_UV, 0, MAX_MCD_UV, 0, 255);
+    for (int i = 0; i < 8; i++) {
+      analogWrite(UV_LED_PINS[i], pwmValue);
+    }
+    Serial.println("Intensidade UV ajustada para: " + String(intensidadeMCD_UV) + " MCD");
+  } else if (comando.startsWith("IR:")) {
+    intensidadeMCD_IR = constrain(comando.substring(3).toInt(), 0, MAX_MCD_IR);
+    int pwmValue = map(intensidadeMCD_IR, 0, MAX_MCD_IR, 0, 255);
+    for (int i = 0; i < 2; i++) {
+      analogWrite(IR_LED_PINS[i], pwmValue);
+    }
+    Serial.println("Intensidade IR ajustada para: " + String(intensidadeMCD_IR) + " MCD");
+  } else if (comando.startsWith("LUX:")) {
+    intensidadeMCD_LUX = constrain(comando.substring(4).toInt(), 0, MAX_MCD_LUX);
+    int pwmValue = map(intensidadeMCD_LUX, 0, MAX_MCD_LUX, 0, 255);
+    for (int i = 0; i < 2; i++) {
+      analogWrite(LUX_LED_PINS[i], pwmValue);
+    }
+    Serial.println("Intensidade LUX ajustada para: " + String(intensidadeMCD_LUX) + " MCD");
+  } else if (comando.startsWith("RESET")) {
+    for (int i = 0; i < 8; i++) {
+      analogWrite(UV_LED_PINS[i], 0);
+    }
+    for (int i = 0; i < 2; i++) {
+      analogWrite(LUX_LED_PINS[i], 0);
+    }
+    for (int i = 0; i < 2; i++) {
+      analogWrite(IR_LED_PINS[i], 0);
+    }
+    Serial.println("Intensidade do LED e RPM resetado!!!");
+  } else if (comando == "STATUS") {
+    Serial.println("Status Atual:");
+    Serial.println("Intensidade UV total: " + String(intensidadeMCD_UV * 8) + " MCD");
+    Serial.println("Intensidade IR total: " + String(intensidadeMCD_IR * 2) + " MCD");
+    Serial.println("Intensidade LUX total: " + String(intensidadeMCD_LUX * 2) + " MCD");
+    Serial.println("==================================================================");
+    Serial.println("Intensidade UV por led: " + String(intensidadeMCD_UV) + " MCD");
+    Serial.println("Intensidade IR por led: " + String(intensidadeMCD_IR) + " MCD");
+    Serial.println("Intensidade LUX por led: " + String(intensidadeMCD_LUX) + " MCD");
+    Serial.println("==================================================================");
+    Serial.println("Motor: " + String(isMotorAtivo ? "Ativo" : "Desligado"));
+    Serial.println("RPM do Motor: " + String(velocidadeMotor) + " RPM");
+    Serial.println("Sentido do Motor: " + String(sentidoHorario ? "Horário" : "Anti-horário"));
+  } else {
+    Serial.println("Comando inválido! Use RPM:<valor>, UV:<valor>, IR:<valor>, LUX:<valor>, ou STATUS.");
+    Serial.println("Limite para cada: RPM(-15(Retrogrado) ate 15(Progressivo)), UV(0 ate 400), LUX(0 ate 14000), IR(0 ate 119)");
+  }
+}
+
+void motorStep(bool sentidoHorario) {
+  if (sentidoHorario) {
+    stepIndex++;
+    if (stepIndex >= 8) stepIndex = 0;
+  } else {
+    stepIndex--;
+    if (stepIndex < 0) stepIndex = 7;
+  }
+
+  digitalWrite(IN1, stepSequence[stepIndex][0]);
+  digitalWrite(IN2, stepSequence[stepIndex][1]);
+  digitalWrite(IN3, stepSequence[stepIndex][2]);
+  digitalWrite(IN4, stepSequence[stepIndex][3]);
+}
+
+void desligarMotor() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
 }
